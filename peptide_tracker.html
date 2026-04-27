@@ -1,0 +1,1391 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Peptide Inventory</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:#f5f5f3;color:#1a1a18;font-size:15px;line-height:1.5;}
+.wrap{max-width:960px;margin:0 auto;padding:1.25rem 1rem 3rem;}
+.tabs{display:flex;gap:2px;margin-bottom:1.5rem;border-bottom:1px solid #e0ddd6;flex-wrap:wrap;}
+.tab{padding:8px 14px;font-size:13px;cursor:pointer;background:none;border:none;border-bottom:2px solid transparent;color:#888;margin-bottom:-1px;}
+.tab:hover{color:#1a1a18;}.tab.active{color:#1a1a18;border-bottom-color:#1a1a18;font-weight:500;}
+.sec{display:none;}.sec.active{display:block;}
+.card{background:#fff;border:1px solid #e8e5de;border-radius:12px;padding:1rem 1.25rem;margin-bottom:12px;}
+.dim{opacity:.55;}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px;}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:11px;margin-bottom:11px;}
+.g4{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:11px;}
+.g5{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:9px;margin-bottom:1rem;}
+.gf{margin-bottom:11px;}
+label{font-size:13px;color:#666;display:block;margin-bottom:4px;}
+input,select,textarea{width:100%;padding:7px 10px;border:1px solid #ddd;border-radius:8px;font-size:14px;background:#fff;color:#1a1a18;font-family:inherit;}
+input:focus,select:focus,textarea:focus{outline:none;border-color:#888;}
+textarea{resize:vertical;}
+.btn{padding:7px 14px;font-size:13px;cursor:pointer;border-radius:8px;border:1px solid #ccc;background:#fff;color:#1a1a18;font-family:inherit;}
+.btn:hover{background:#f5f5f3;}.btn-p{background:#1a1a18;color:#fff;border-color:#1a1a18;}
+.btn-p:hover{opacity:.85;}.btn-s{padding:3px 9px;font-size:12px;}
+.btn-d{border-color:#e5b4b4;color:#c0392b;}.btn-d:hover{background:#fdf0f0;}
+.met{background:#f5f5f3;border-radius:8px;padding:.7rem 1rem;}
+.met-l{font-size:11px;color:#888;margin-bottom:2px;}.met-v{font-size:20px;font-weight:500;}
+.bx{display:inline-flex;font-size:11px;padding:2px 8px;border-radius:99px;font-weight:500;}
+.bx-g{background:#e8f5e9;color:#2e7d32;}.bx-a{background:#fff8e1;color:#f57c00;}
+.bx-r{background:#fde8e8;color:#c0392b;}.bx-b{background:#e3f2fd;color:#1565c0;}
+.bx-x{background:#f0f0f0;color:#666;}.bx-p{background:#ede7f6;color:#4527a0;}
+.type-row{display:flex;align-items:flex-start;gap:10px;border:1px solid #e8e5de;border-radius:8px;padding:10px 14px;margin-bottom:6px;flex-wrap:wrap;}
+.type-main{flex:1;min-width:140px;}
+.type-name{font-size:14px;font-weight:500;color:#1a1a18;margin-bottom:2px;}
+.type-sub{font-size:12px;color:#888;}
+.rw{height:5px;background:#e8e5de;border-radius:3px;overflow:hidden;margin-top:3px;}
+.rb{height:100%;border-radius:3px;}
+.rg{background:#2e7d32;}.ra{background:#f57c00;}.rr{background:#c0392b;}
+.mb{position:fixed;inset:0;background:rgba(0,0,0,.4);display:flex;align-items:center;justify-content:center;z-index:200;}
+.md{background:#fff;border:1px solid #e8e5de;border-radius:12px;padding:1.4rem;width:460px;max-width:95vw;max-height:90vh;overflow-y:auto;}
+.rm-md{background:#fff;border:1px solid #e8e5de;border-radius:12px;padding:1.4rem;width:380px;max-width:95vw;}
+.hr{border:none;border-top:1px solid #eee;margin:11px 0;}
+.hint-box{background:#f0f4ff;border-radius:8px;padding:8px 11px;margin-bottom:10px;font-size:12px;color:#444;}
+.dr{display:grid;grid-template-columns:1fr 68px 68px 68px 80px auto;gap:5px;align-items:center;margin-bottom:5px;}
+.next-use{display:inline-flex;align-items:center;background:#e3f2fd;border-radius:8px;padding:5px 12px;font-size:13px;color:#1565c0;font-weight:500;margin-bottom:8px;}
+.spinner{display:inline-block;width:16px;height:16px;border:2px solid #ddd;border-top-color:#888;border-radius:50%;animation:spin .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading{text-align:center;padding:3rem;color:#888;font-size:14px;}
+.status-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:5px;}
+.token-warn{background:#fff8e1;border:1px solid #f57c00;border-radius:8px;padding:1rem;margin-bottom:1rem;font-size:13px;color:#7a4a00;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<!-- TOKEN WARNING (shows if not configured) -->
+<div id="token-warn" class="token-warn" style="display:none;">
+  <strong>⚠ Setup needed:</strong> Open this HTML file in a text editor and replace
+  <code style="background:#fff;padding:2px 6px;border-radius:4px;">PASTE_YOUR_TOKEN_HERE</code>
+  near the top with your Notion integration token. Save and reload.
+</div>
+
+<!-- HEADER -->
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;flex-wrap:wrap;gap:8px;">
+  <h1 style="font-size:18px;font-weight:500;margin:0;">💊 Peptide Inventory</h1>
+  <div style="display:flex;align-items:center;gap:12px;">
+    <span id="sync-status" style="font-size:12px;color:#888;"><span class="status-dot" id="status-dot" style="background:#ccc;"></span>Connecting…</span>
+    <button class="btn btn-s" onclick="refreshAll()">↻ Refresh</button>
+  </div>
+</div>
+
+<!-- TABS -->
+<div class="tabs">
+  <button class="tab active" onclick="goTab('inv',this)">Inventory</button>
+  <button class="tab" onclick="goTab('ppl',this)">People</button>
+  <button class="tab" onclick="goTab('log',this)">Log use</button>
+  <button class="tab" onclick="goTab('ord',this)" id="ord-btn">Reorder</button>
+  <button class="tab" onclick="goTab('cal',this)">Calculator</button>
+</div>
+
+<!-- INVENTORY -->
+<div id="s-inv" class="sec active">
+  <div class="g5" id="mets" style="margin-bottom:1rem;"></div>
+  <div style="display:flex;gap:10px;align-items:center;margin-bottom:1rem;flex-wrap:wrap;">
+    <input type="text" id="srch" placeholder="Search…" oninput="renderInv()" style="max-width:200px;">
+    <label style="display:flex;align-items:center;gap:5px;font-size:13px;cursor:pointer;margin:0;color:#555;"><input type="checkbox" id="shInact" onchange="renderInv()"> Show inactive</label>
+    <button class="btn btn-p btn-s" onclick="openAddLot('')">+ Add peptide</button>
+  </div>
+  <div id="inv-list"><div class="loading"><span class="spinner"></span>Loading from Notion…</div></div>
+</div>
+
+<!-- PEOPLE -->
+<div id="s-ppl" class="sec">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;">
+    <span style="font-size:15px;font-weight:500;">People &amp; doses</span>
+    <button class="btn btn-p" onclick="openAddPerson()">+ Add person</button>
+  </div>
+  <div id="ppl-list"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+</div>
+
+<!-- LOG USE -->
+<div id="s-log" class="sec">
+  <div class="card">
+    <p style="font-size:15px;font-weight:500;margin-bottom:1rem;">Log a use event</p>
+    <div class="g2">
+      <div><label>Person</label><select id="lp" onchange="logPersonChange()"><option value="">— choose —</option></select></div>
+      <div><label>Peptide</label><select id="lpep" onchange="logPepChange()"><option value="">— choose —</option></select></div>
+    </div>
+    <div id="lhint" style="display:none;" class="hint-box"></div>
+    <div class="g3">
+      <div><label>Amount (mg)</label><input type="number" id="lmg" placeholder="0.25" step="0.01"></div>
+      <div><label>Date</label><input type="date" id="ldate"></div>
+      <div><label>Bottle #s removed</label><input type="text" id="lbtlnums" placeholder="e.g. 3, 5"></div>
+    </div>
+    <div id="cust-f" style="display:none;">
+      <div class="hr"></div>
+      <p style="font-size:13px;font-weight:500;margin-bottom:.7rem;color:#666;">Customer transaction</p>
+      <div class="g3">
+        <div><label>Paid ($)</label><input type="number" id="lpaid" placeholder="0.00" step="0.01"></div>
+        <div><label>Bottles given</label><input type="number" id="lbtl" placeholder="0" step="1"></div>
+        <div><label>Notes</label><input type="text" id="lnotes" placeholder="month 2 supply"></div>
+      </div>
+    </div>
+    <button class="btn btn-p" onclick="saveLog()">Save</button>
+    <span id="lmsg" style="margin-left:10px;font-size:13px;"></span>
+  </div>
+  <div id="log-hist"><div class="loading"><span class="spinner"></span>Loading…</div></div>
+</div>
+
+<!-- REORDER -->
+<div id="s-ord" class="sec"><div id="ord-list"><div class="loading"><span class="spinner"></span>Loading…</div></div></div>
+
+<!-- CALCULATOR -->
+<div id="s-cal" class="sec">
+  <div class="card">
+    <p style="font-size:15px;font-weight:500;margin-bottom:.5rem;">Cost sharing</p>
+    <p style="font-size:12px;color:#888;margin-bottom:1rem;">What to charge at cost.</p>
+    <div class="g2">
+      <div><label>Peptide</label><select id="cp" onchange="calcUpdateLots()"><option value="">— choose —</option></select></div>
+      <div><label>Lot</label><select id="cl" onchange="calcUpdate()"><option value="">— choose —</option></select></div>
+    </div>
+    <div id="cli" style="font-size:13px;color:#666;margin-bottom:1rem;display:none;"></div>
+    <div class="g2">
+      <div><label>Give (mg)</label><input type="number" id="cgm" placeholder="2.5" step="0.01" oninput="calcUpdate()"></div>
+      <div><label>Or doses</label><input type="number" id="cgd" placeholder="3" step="1" oninput="calcUpdate()"></div>
+    </div>
+    <div id="cr"></div>
+  </div>
+  <div class="card">
+    <p style="font-size:15px;font-weight:500;margin-bottom:.5rem;">Blended cost</p>
+    <p style="font-size:12px;color:#888;margin-bottom:1rem;">Average $/mg across lots.</p>
+    <div class="gf"><label>Peptide</label><select id="bp" onchange="calcBlend()"><option value="">— choose —</option></select></div>
+    <div id="br"></div>
+  </div>
+</div>
+</div>
+
+<!-- REMOVE MODAL -->
+<div id="rm" class="mb" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+<div class="rm-md">
+  <p style="font-size:15px;font-weight:500;margin-bottom:4px;" id="rm-title">Remove from stock</p>
+  <p id="rm-sub" style="font-size:12px;color:#666;margin-bottom:10px;"></p>
+  <div class="gf" style="margin-bottom:10px;">
+    <label>Who is this for? <span style="font-weight:400;color:#999;">(optional)</span></label>
+    <select id="rm-person"><option value="">— stock removal —</option></select>
+  </div>
+  <label style="font-size:13px;color:#666;display:block;margin-bottom:4px;">Select bottles to remove</label>
+  <div id="rm-chips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px;padding:8px;background:#f5f5f3;border-radius:8px;border:1px solid #e0ddd6;min-height:40px;"></div>
+  <p id="rm-calc" style="font-size:12px;color:#1565c0;margin-bottom:12px;font-weight:500;min-height:18px;"></p>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="confirmRemove()">Remove selected</button>
+    <button class="btn" onclick="document.getElementById('rm').style.display='none'">Cancel</button>
+  </div>
+  <p id="rm-err" style="font-size:12px;color:#c0392b;margin-top:7px;"></p>
+</div>
+</div>
+
+<!-- LOT MODAL -->
+<div id="lm" class="mb" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+<div class="md">
+  <p style="font-size:15px;font-weight:500;margin-bottom:1rem;" id="lm-t">Add lot</p>
+  <div class="g2">
+    <div><label>Peptide name</label><input id="lmn" list="lmnl" placeholder="BPC-157" oninput="lotNameChange()"><datalist id="lmnl"></datalist></div>
+    <div><label>Vendor</label><input id="lmv" placeholder="Limitless Life"></div>
+  </div>
+  <div class="g4">
+    <div><label>Bottle size (mg)</label><input type="number" id="lmmg" placeholder="5" step="0.1" oninput="mgHint()"></div>
+    <div><label>Doses/bottle</label><input type="number" id="lmdpb" placeholder="1" step="1" min="1" oninput="mgHint()"></div>
+    <div><label id="lmqt-lbl">Qty to add</label><input type="number" id="lmqt" placeholder="4" min="1"></div>
+    <div><label>$/bottle</label><input type="number" id="lmpr" placeholder="28.50" step="0.01"></div>
+  </div>
+  <div id="mgpd-hint" style="font-size:12px;color:#1565c0;margin-bottom:6px;display:none;"></div>
+  <div class="gf" id="lm-stack-row" style="display:none;">
+    <label>Stack ratio <span style="font-weight:400;color:#999;">(e.g. 5/5mg)</span></label>
+    <input id="lmsl" placeholder="e.g. 5/5mg">
+    <p style="font-size:12px;color:#888;margin-top:4px;">Enter total mg above. This label is display only.</p>
+  </div>
+  <div class="g2" id="lm-rem-row" style="display:none;">
+    <div><label>Bottles remaining now</label><input type="number" id="lmqr" placeholder="4" min="0"></div>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;"><p style="font-size:12px;color:#888;padding-bottom:6px;">Correct if some already used</p></div>
+  </div>
+  <div class="g2">
+    <div><label>Purchased</label><input type="date" id="lmdt"></div>
+    <div><label>Expires</label><input type="date" id="lmex"></div>
+  </div>
+  <div class="g2">
+    <div><label>Storage</label><select id="lmst"><option>Freezer</option><option>Fridge</option><option>Box</option><option>Room temp</option></select></div>
+    <div><label>Location notes</label><input id="lmlocno" placeholder="shelf 2, left side"></div>
+  </div>
+  <div class="gf">
+    <label>General notes <span style="font-weight:400;color:#999;">(batch quality, vendor quirks, etc.)</span></label>
+    <input id="lmno" placeholder="optional">
+  </div>
+  <div class="hr"></div>
+  <div class="gf"><label>Usage mode</label><select id="lmmo" onchange="modeChange()"><option value="Active">Active — weekly dosing</option><option value="Cycle">Cycle — every few months</option><option value="Inactive">Inactive — stock only</option></select></div>
+  <div id="lm-cyc" style="display:none;">
+    <div class="g3">
+      <div><label>Bottles/round</label><input type="number" id="lmbr" placeholder="2" min="1"></div>
+      <div><label>Interval (months)</label><input type="number" id="lmiv" placeholder="6" min="1"></div>
+      <div><label>Last round</label><input type="date" id="lmlr"></div>
+    </div>
+  </div>
+  <div id="lm-act">
+    <div class="g2">
+      <div><label>Min bottles alert</label><input type="number" id="lmmb" placeholder="2"></div>
+      <div><label>Min doses alert</label><input type="number" id="lmmd" placeholder="14"></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:8px;">
+    <button class="btn btn-p" onclick="saveLot()">Save</button>
+    <button class="btn" onclick="document.getElementById('lm').style.display='none'">Cancel</button>
+  </div>
+  <p id="lme" style="font-size:12px;color:#c0392b;margin-top:7px;"></p>
+  <div id="lm-saving" style="display:none;margin-top:8px;font-size:13px;color:#888;"><span class="spinner"></span>Saving to Notion…</div>
+</div>
+</div>
+
+<!-- PERSON MODAL -->
+<div id="pm" class="mb" style="display:none;" onclick="if(event.target===this)this.style.display='none'">
+<div class="md">
+  <p style="font-size:15px;font-weight:500;margin-bottom:1rem;" id="pm-t">Add person</p>
+  <div class="g2">
+    <div><label>Name</label><input id="pmn" placeholder="Brent"></div>
+    <div><label>Type</label><select id="pmt"><option value="Self">Self</option><option value="Family">Family</option><option value="Customer">Customer</option></select></div>
+  </div>
+  <div class="gf"><label>Notes</label><input id="pmno" placeholder="optional"></div>
+  <div class="hr"></div>
+  <p style="font-size:13px;font-weight:500;margin-bottom:.4rem;">Dose schedule</p>
+  <p style="font-size:12px;color:#999;margin-bottom:.7rem;">One row per peptide.</p>
+  <div style="display:grid;grid-template-columns:1fr 68px 68px 68px 80px auto;gap:5px;margin-bottom:5px;">
+    <span style="font-size:11px;color:#999;">Peptide</span>
+    <span style="font-size:11px;color:#999;">mg/dose</span>
+    <span style="font-size:11px;color:#999;">doses/wk</span>
+    <span style="font-size:11px;color:#999;">target mg</span>
+    <span style="font-size:11px;color:#999;">ramp?</span>
+    <span></span>
+  </div>
+  <div id="pm-doses"></div>
+  <button class="btn btn-s" onclick="addDoseRow()" style="margin-top:5px;">+ Add peptide</button>
+  <div style="display:flex;gap:8px;margin-top:1.1rem;">
+    <button class="btn btn-p" onclick="savePerson()">Save</button>
+    <button class="btn" onclick="document.getElementById('pm').style.display='none'">Cancel</button>
+  </div>
+  <p id="pme" style="font-size:12px;color:#c0392b;margin-top:7px;"></p>
+  <div id="pm-saving" style="display:none;margin-top:8px;font-size:13px;color:#888;"><span class="spinner"></span>Saving to Notion…</div>
+</div>
+</div>
+
+<script>// ═══════════════════════════════════════════════════════════════════════════
+// CONFIG — Token lives on Cloudflare Worker, not in this file.
+// The worker handles auth and CORS. This file contains no secrets.
+// ═══════════════════════════════════════════════════════════════════════════
+
+const WORKER_BASE = 'https://peptide-proxy.bboyse88.workers.dev';
+// Database IDs
+const DB_INV   = 'f69e0c9fd73b46ee8510308d6679f730'; // Inventory
+const DB_PPL   = '20fd7845d2be4f5f9e1d55eacc42ea11'; // People
+const DB_LOG   = '4a1e04f13df94aac8bc6b5bf67d033fa'; // Usage Log
+const DB_NOTES = '1d920eb6b4a0422d9e0e0ceff45d24f7'; // Peptide Notes
+const DB_DOSES = '6b433e74a7c94007a9557feb86322991'; // Dose Schedules
+
+// ═══════════════════════════════════════════════════════════════════════════
+// NOTION API LAYER
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function notionFetch(path, opts) {
+  opts = opts || {};
+  const res = await fetch(WORKER_BASE + '/v1' + path, {
+    method: opts.method || 'GET',
+    headers: { 'Content-Type': 'application/json' },
+    body: opts.body ? JSON.stringify(opts.body) : undefined
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    throw new Error(`Notion API ${res.status}: ${txt}`);
+  }
+  return await res.json();
+}
+
+// Query all rows from a database (handles pagination)
+async function queryDb(dbId) {
+  const results = [];
+  let cursor = undefined;
+  do {
+    const body = { page_size: 100 };
+    if (cursor) body.start_cursor = cursor;
+    const resp = await notionFetch(`/databases/${dbId}/query`, { method: 'POST', body });
+    results.push(...resp.results);
+    cursor = resp.has_more ? resp.next_cursor : null;
+  } while (cursor);
+  return results.map(parsePage);
+}
+
+// Convert a raw Notion page to a flat object keyed by property name
+function parsePage(page) {
+  const out = { _id: page.id };
+  for (const [name, prop] of Object.entries(page.properties)) {
+    out[name] = readProp(prop);
+  }
+  return out;
+}
+
+function readProp(prop) {
+  switch (prop.type) {
+    case 'title':       return (prop.title || []).map(t => t.plain_text).join('');
+    case 'rich_text':   return (prop.rich_text || []).map(t => t.plain_text).join('');
+    case 'number':      return prop.number;
+    case 'select':      return prop.select ? prop.select.name : null;
+    case 'multi_select':return (prop.multi_select || []).map(s => s.name);
+    case 'date':        return prop.date ? prop.date.start : null;
+    case 'checkbox':    return prop.checkbox;
+    case 'formula':
+      if (!prop.formula) return null;
+      if (prop.formula.type === 'string') return prop.formula.string;
+      if (prop.formula.type === 'number') return prop.formula.number;
+      if (prop.formula.type === 'boolean') return prop.formula.boolean;
+      if (prop.formula.type === 'date') return prop.formula.date ? prop.formula.date.start : null;
+      return null;
+    case 'relation':    return (prop.relation || []).map(r => r.id);
+    case 'rollup':
+      if (prop.rollup.type === 'number') return prop.rollup.number;
+      if (prop.rollup.type === 'array') return prop.rollup.array;
+      return null;
+    default: return null;
+  }
+}
+
+// Build property payload for create/update.
+// `schema` describes each field's Notion type so we encode correctly.
+function buildProps(values, schema) {
+  const out = {};
+  for (const [key, val] of Object.entries(values)) {
+    if (val === undefined) continue;
+    const type = schema[key];
+    if (!type) continue;
+    if (val === null || val === '') {
+      // explicit clear
+      out[key] = clearValue(type);
+      continue;
+    }
+    out[key] = encodeProp(type, val);
+  }
+  return out;
+}
+
+function encodeProp(type, val) {
+  switch (type) {
+    case 'title':     return { title: [{ text: { content: String(val) } }] };
+    case 'rich_text': return { rich_text: [{ text: { content: String(val) } }] };
+    case 'number':    return { number: Number(val) };
+    case 'select':    return { select: { name: String(val) } };
+    case 'date':      return { date: { start: String(val) } };
+    case 'relation':  return { relation: (Array.isArray(val) ? val : [val]).map(id => ({ id })) };
+    case 'checkbox':  return { checkbox: !!val };
+    default: return null;
+  }
+}
+
+function clearValue(type) {
+  switch (type) {
+    case 'title':     return { title: [] };
+    case 'rich_text': return { rich_text: [] };
+    case 'number':    return { number: null };
+    case 'select':    return { select: null };
+    case 'date':      return { date: null };
+    case 'relation':  return { relation: [] };
+    default: return null;
+  }
+}
+
+async function createPage(dbId, values, schema) {
+  const props = buildProps(values, schema);
+  return await notionFetch('/pages', {
+    method: 'POST',
+    body: { parent: { database_id: dbId }, properties: props }
+  });
+}
+
+async function updatePage(pageId, values, schema) {
+  const props = buildProps(values, schema);
+  return await notionFetch(`/pages/${pageId}`, {
+    method: 'PATCH',
+    body: { properties: props }
+  });
+}
+
+async function archivePage(pageId) {
+  return await notionFetch(`/pages/${pageId}`, {
+    method: 'PATCH',
+    body: { archived: true }
+  });
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// SCHEMAS — tells encoder what type each property is
+// ═══════════════════════════════════════════════════════════════════════════
+
+const SCHEMA_INV = {
+  'Name':'title','Vendor':'rich_text','Bottle Size (mg)':'number','Doses Per Bottle':'number',
+  'Qty Total Purchased':'number','Qty Remaining':'number','Price Per Bottle':'number',
+  'Bottle Numbers':'rich_text','Storage':'select','Location Notes':'rich_text','Notes':'rich_text',
+  'Mode':'select','Stack Label':'rich_text','Min Bottles Alert':'number','Min Doses Alert':'number',
+  'Bottles Per Round':'number','Cycle Interval (months)':'number','Last Round Date':'date',
+  'Purchase Date':'date','Expiration Date':'date'
+};
+
+const SCHEMA_PPL = {
+  'Name':'title','Type':'select','Active':'select','Notes':'rich_text'
+};
+
+const SCHEMA_DOSES = {
+  'Name':'title','Person':'relation','Peptide':'relation',
+  'mg Per Dose':'number','Doses Per Week':'number','Target mg':'number','Current mg':'number',
+  'Ramping':'select','Active':'select','Last Round Date':'date'
+};
+
+const SCHEMA_LOG = {
+  'Name':'title','Date':'date','Person':'relation','Person Type':'select',
+  'Peptide':'relation','Amount (mg)':'number','Doses':'number','Paid ($)':'number',
+  'Bottles Given':'number','Bottle Numbers Removed':'rich_text','Notes':'rich_text'
+};
+
+const SCHEMA_NOTES = {
+  'Name':'title','Peptide':'relation','Reconstitution & Dosing Notes':'rich_text'
+};
+
+// ═══════════════════════════════════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════════════════════════════════
+
+let INV=[], PEOPLE=[], LOG=[], NOTES=[], DOSES=[];
+let rmLotId=null, rmSelected=[], editLotId=null, editPersonId=null, drc=0;
+
+function setStatus(txt, color) {
+  document.getElementById('sync-status').innerHTML =
+    `<span class="status-dot" style="background:${color||'#888'};"></span>${txt}`;
+}
+
+function tod() { return new Date().toISOString().slice(0,10); }
+function uid() { return Date.now()+Math.random().toString(36).slice(2); }
+
+// Resolve a relation array of IDs to a name from a list
+function relName(ids, list) {
+  if (!ids || !ids.length) return '';
+  const found = list.find(x => x._id === ids[0]);
+  return found ? found.Name : '';
+}
+function relId(name, list) {
+  const found = list.find(x => x.Name === name);
+  return found ? found._id : null;
+}
+
+function pnames() { return [...new Set(INV.map(l=>l.Name).filter(Boolean))]; }
+function dpb(l) { return l['Doses Per Bottle']||1; }
+
+function pmode(name) {
+  const ls=INV.filter(l=>l.Name===name);
+  if(!ls.length)return'Active';
+  if(ls.every(l=>(l.Mode||'Active')==='Inactive'))return'Inactive';
+  if(ls.some(l=>(l.Mode||'Active')==='Cycle'))return'Cycle';
+  return'Active';
+}
+
+// Doses for a peptide: filter Doses by relation match
+function dosesForPeptide(name) {
+  const pepIds = INV.filter(l=>l.Name===name).map(l=>l._id);
+  return DOSES.filter(d => {
+    const dpepIds = d.Peptide || [];
+    return dpepIds.some(id => pepIds.includes(id));
+  });
+}
+
+function wDemandDoses(name) {
+  let t=0;
+  dosesForPeptide(name).filter(d=>d.Active==='Active').forEach(d=>{t+=d['Doses Per Week']||0;});
+  return t;
+}
+
+function needsReorder(name) {
+  const mode=pmode(name);if(mode==='Inactive')return false;
+  const lots=INV.filter(l=>l.Name===name);
+  const totB=lots.reduce((a,l)=>a+(l['Qty Remaining']||0),0);
+  const totD=lots.reduce((a,l)=>a+(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1),0);
+  if(mode==='Cycle'){const bpr=lots[0]&&lots[0]['Bottles Per Round']||1;return Math.floor(totB/bpr)<=1;}
+  const minB=lots[0]&&lots[0]['Min Bottles Alert']||0;
+  const minD=lots[0]&&lots[0]['Min Doses Alert']||0;
+  const b=wDemandDoses(name);const w=b>0?totD/b:null;
+  return(minB&&totB<=minB)||(minD&&totD<=minD)||(w!==null&&w<=2);
+}
+
+function showMsg(id,txt,color){const el=document.getElementById(id);el.style.color=color;el.textContent=txt;setTimeout(()=>el.textContent='',3000);}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOAD DATA
+// ═══════════════════════════════════════════════════════════════════════════
+
+async function loadAll() {
+  setStatus('Loading from Notion…','#f57c00');
+  try {
+    const [inv, ppl, doses, log, notes] = await Promise.all([
+      queryDb(DB_INV),
+      queryDb(DB_PPL),
+      queryDb(DB_DOSES),
+      queryDb(DB_LOG),
+      queryDb(DB_NOTES)
+    ]);
+    INV = inv; PEOPLE = ppl; DOSES = doses; LOG = log; NOTES = notes;
+    // Sort log by date desc
+    LOG.sort((a,b) => (b.Date||'').localeCompare(a.Date||''));
+    setStatus('✓ Synced','#2e7d32');
+  } catch(e) {
+    setStatus('⚠ Connection error','#c0392b');
+    console.error(e);
+    alert('Notion connection failed: ' + e.message + '\n\nCheck:\n1. Token is correctly pasted at top of file\n2. All 5 databases are shared with the integration\n3. Internet is connected');
+  }
+}
+
+async function refreshAll() { await loadAll(); renderInv(); }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// TAB NAV
+// ═══════════════════════════════════════════════════════════════════════════
+
+function goTab(t, el) {
+  document.querySelectorAll('.tab').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.sec').forEach(s=>s.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('s-'+t).classList.add('active');
+  if(t==='inv') renderInv();
+  if(t==='ppl') renderPpl();
+  if(t==='log') { renderLog(); populateLogSelects(); }
+  if(t==='ord') renderReorder();
+  if(t==='cal') populateCalc();
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INVENTORY
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderInv() {
+  const q=document.getElementById('srch').value.toLowerCase();
+  const si=document.getElementById('shInact').checked;
+  const grouped={};
+  INV.forEach(l=>{
+    if(!l.Name)return;
+    if(!l.Name.toLowerCase().includes(q))return;
+    if(!si&&(l.Mode||'Active')==='Inactive')return;
+    if(!grouped[l.Name])grouped[l.Name]=[];
+    grouped[l.Name].push(l);
+  });
+  const allN=pnames();
+  let totB=0,totD=0,totS=0;
+  INV.forEach(l=>{totB+=(l['Qty Remaining']||0);totD+=(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1);totS+=(l['Price Per Bottle']||0)*(l['Qty Total Purchased']||0);});
+  const rc=allN.filter(n=>needsReorder(n)).length;
+  document.getElementById('mets').innerHTML=`
+    <div class="met"><div class="met-l">Peptides</div><div class="met-v">${allN.length}</div></div>
+    <div class="met"><div class="met-l">Bottles</div><div class="met-v">${totB}</div></div>
+    <div class="met"><div class="met-l">Total doses</div><div class="met-v">${Math.round(totD)}</div></div>
+    <div class="met"><div class="met-l">Invested</div><div class="met-v">$${totS.toFixed(2)}</div></div>
+    <div class="met"><div class="met-l">People</div><div class="met-v">${PEOPLE.length}</div></div>`;
+  const ob=document.getElementById('ord-btn');
+  ob.textContent=rc>0?`Reorder (${rc})`:'Reorder';
+  ob.style.color=rc>0?'#c0392b':'';
+  const names=Object.keys(grouped);
+  if(!names.length){
+    document.getElementById('inv-list').innerHTML='<div style="text-align:center;padding:2rem;color:#999;">No peptides yet. Click "+ Add peptide" to get started.</div>';
+    return;
+  }
+  document.getElementById('inv-list').innerHTML=
+    names.map(name=>renderPepCard(name,grouped[name])).join('')+
+    `<div style="margin-top:8px;"><button class="btn btn-p" onclick="openAddLot('')">+ Add new peptide</button></div>`;
+}
+
+function renderPepCard(name, lots) {
+  const mode=pmode(name);
+  const totB=lots.reduce((a,l)=>a+(l['Qty Remaining']||0),0);
+  const totD=lots.reduce((a,l)=>a+(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1),0);
+  const totMg=lots.reduce((a,l)=>a+(l['Qty Remaining']||0)*(l['Bottle Size (mg)']||0),0);
+  const totPurchased=lots.reduce((a,l)=>a+(l['Qty Total Purchased']||0),0);
+  const totSpent=lots.reduce((a,l)=>a+(l['Price Per Bottle']||0)*(l['Qty Total Purchased']||0),0);
+  const avgPrice=totPurchased>0?totSpent/totPurchased:0;
+
+  // bottle numbers across all lots
+  const allNums=[];
+  lots.forEach(l=>{
+    (l['Bottle Numbers']||'').split(',').map(s=>s.trim()).filter(s=>s&&!isNaN(+s))
+      .forEach(n=>allNums.push({num:+n, mg:l['Bottle Size (mg)'], lotId:l._id}));
+  });
+  allNums.sort((a,b)=>a.num-b.num);
+  const nextUse=allNums[0];
+  const nextHtml=nextUse?`<div class="next-use">Use next: bottle #${nextUse.num} (${nextUse.mg}mg)</div>`:'';
+
+  // badges
+  const nr=needsReorder(name);
+  const burnD=wDemandDoses(name);
+  const wD=burnD>0?totD/burnD:null;
+  const warn=!nr&&mode==='Active'&&wD!==null&&wD<=3;
+  const abadge=nr?'<span class="bx bx-r">Reorder</span>':warn?'<span class="bx bx-a">Low</span>':'';
+  const mbadge=mode==='Inactive'?'<span class="bx bx-x">inactive</span>':mode==='Cycle'?'<span class="bx bx-p">cycle</span>':'';
+
+  // burn / runway
+  const usersDoses=dosesForPeptide(name).filter(d=>d.Active==='Active');
+  const users=usersDoses.map(d => relName(d.Person, PEOPLE)).filter(Boolean);
+  const utags=users.map(u=>`<span style="font-size:11px;background:#f5f5f3;border-radius:99px;padding:2px 7px;color:#666;">${u}</span>`).join('');
+  let runwayHtml='';
+  if(mode==='Active') {
+    runwayHtml=burnD>0?
+      `<div style="margin:7px 0 3px;"><div style="display:flex;justify-content:space-between;font-size:12px;color:#888;margin-bottom:2px;flex-wrap:wrap;gap:4px;">
+        <span>${burnD} doses/wk &nbsp;${utags}</span>
+        <span style="font-weight:500;color:${!wD?'inherit':wD<=1?'#c0392b':wD<=3?'#f57c00':'#1a1a18'};">${wD!==null?wD.toFixed(1)+' wks runway':'—'}</span>
+      </div><div class="rw"><div class="rb ${!wD?'rg':wD<=1?'rr':wD<=3?'ra':'rg'}" style="width:${wD?Math.min(100,wD/12*100):100}%;"></div></div></div>`:
+      `<div style="font-size:12px;color:#999;margin:5px 0;">No burn rate set — add doses in People tab ${utags}</div>`;
+  }
+
+  // type rows grouped by mg+dpb
+  const typeMap={};
+  lots.forEach(l=>{
+    const k=`${l['Bottle Size (mg)']}_${l['Doses Per Bottle']||1}`;
+    if(!typeMap[k])typeMap[k]={mg:l['Bottle Size (mg)'],dpb:l['Doses Per Bottle']||1,bottles:0,doses:0,lots:[],storages:new Set(),locNotesArr:[],notesArr:[],stackLabel:''};
+    typeMap[k].bottles+=l['Qty Remaining']||0;
+    typeMap[k].doses+=(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1);
+    typeMap[k].lots.push(l);
+    if(l.Storage)typeMap[k].storages.add(l.Storage);
+    if(l['Location Notes'])typeMap[k].locNotesArr.push(l['Location Notes']);
+    if(l['Notes'])typeMap[k].notesArr.push(l['Notes']);
+    if(!typeMap[k].stackLabel&&l['Stack Label'])typeMap[k].stackLabel=l['Stack Label'];
+  });
+
+  const typeRows=Object.values(typeMap).map(t=>{
+    const nums=[];
+    t.lots.forEach(l=>{
+      (l['Bottle Numbers']||'').split(',').map(s=>s.trim()).filter(s=>s&&!isNaN(+s)).forEach(n=>nums.push(+n));
+    });
+    nums.sort((a,b)=>a-b);
+    const btlStr=nums.length?nums.map(n=>'#'+n).join(', '):'';
+    const totalP=t.lots.reduce((a,l)=>a+(l['Qty Total Purchased']||1),0);
+    const avgP=t.lots.reduce((a,l)=>a+(l['Price Per Bottle']||0)*(l['Qty Total Purchased']||1),0)/Math.max(1,totalP);
+    // status badge based on Notion-computed Status if available, else fallback
+    const firstStatus=t.lots[0] && t.lots[0].Status;
+    let sc, st;
+    if (firstStatus === 'Depleted') { sc='bx-r'; st='depleted'; }
+    else if (firstStatus === 'Low') { sc='bx-a'; st='low'; }
+    else if (firstStatus === 'In stock') { sc='bx-g'; st='in stock'; }
+    else { sc=t.bottles===0?'bx-r':t.bottles<=2?'bx-a':'bx-g'; st=t.bottles===0?'depleted':t.bottles<=2?'low':'in stock'; }
+    const storageStr=[...t.storages].join(', ')||'—';
+    const locNotesStr=[...new Set(t.locNotesArr)].join(' · ');
+    const notesStr=[...new Set(t.notesArr)].join(' · ');
+    const firstWithStock=t.lots.find(l=>(l['Qty Remaining']||0)>0)||t.lots[0];
+    return `<div class="type-row">
+      <div class="type-main">
+        <div class="type-name">${t.mg}mg &nbsp;·&nbsp; ${t.dpb} dose${t.dpb>1?'s':''}/bottle &nbsp;·&nbsp; ${(t.mg/t.dpb).toFixed(2)}mg/dose${t.stackLabel?` &nbsp;<span style="font-size:11px;background:#ede7f6;color:#4527a0;border-radius:4px;padding:1px 6px;">${t.stackLabel}</span>`:''}</div>
+        <div class="type-sub">${Math.round(t.bottles)} btl &nbsp;·&nbsp; ${Math.round(t.doses)} doses &nbsp;·&nbsp; $${avgP.toFixed(2)}/btl</div>
+        <div style="font-size:12px;color:#555;margin-top:3px;">📍 <strong>${storageStr}</strong>${locNotesStr?' &nbsp;·&nbsp; '+locNotesStr:''}</div>
+        ${notesStr?`<div style="font-size:12px;color:#666;margin-top:2px;font-style:italic;">📝 ${notesStr}</div>`:''}
+        ${btlStr?`<div style="font-size:12px;color:#1565c0;margin-top:3px;">Bottles: ${btlStr}</div>`:''}
+      </div>
+      <span class="bx ${sc}" style="flex-shrink:0;">${st}</span>
+      <button class="btn btn-s btn-d" onclick="openRemove('${firstWithStock._id}')" style="flex-shrink:0;">Remove</button>
+      <button class="btn btn-s" onclick="openEditLot('${firstWithStock._id}')" style="flex-shrink:0;">Edit</button>
+    </div>`;
+  }).join('');
+
+  // peptide notes (related to inventory by relation)
+  const lotIds = lots.map(l => l._id);
+  const pepNote = NOTES.find(n => (n.Peptide||[]).some(id => lotIds.includes(id)));
+  const sn=name.replace(/[^a-zA-Z0-9]/g,'_');
+  const noteHtml=`<div style="margin-top:12px;border-top:1px solid #f0ede6;padding-top:10px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;">
+      <span style="font-size:12px;font-weight:500;color:#888;">Reconstitution &amp; dosing notes</span>
+      <button class="btn btn-s" onclick="editPepNote('${name}')">Edit</button>
+    </div>
+    <div id="pn-show-${sn}">${pepNote && pepNote['Reconstitution & Dosing Notes']?
+      `<div style="font-size:13px;color:#444;white-space:pre-wrap;">${pepNote['Reconstitution & Dosing Notes'].replace(/</g,'&lt;')}</div>`:
+      `<div style="font-size:12px;color:#bbb;font-style:italic;">No notes yet — click Edit to add reconstitution instructions, typical dose, ramp schedule, etc.</div>`}
+    </div>
+    <textarea id="pn-ta-${sn}" rows="3" style="display:none;margin-top:6px;font-size:13px;" placeholder="e.g. Recon: 2ml BAC water. Dose: 0.25mg 3x/week. Ramp: start 0.1mg week 1…">${pepNote && pepNote['Reconstitution & Dosing Notes']||''}</textarea>
+    <div id="pn-btns-${sn}" style="display:none;margin-top:6px;gap:8px;">
+      <button class="btn btn-s btn-p" onclick="savePepNote('${name}')">Save</button>
+      <button class="btn btn-s" onclick="cancelPepNote('${name}')">Cancel</button>
+    </div>
+  </div>`;
+
+  return `<div class="card ${mode==='Inactive'?'dim':''}">
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:6px;">
+      <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;">
+        <span style="font-size:15px;font-weight:500;">${name}</span>${mbadge}${abadge}
+      </div>
+      <div style="font-size:12px;color:#888;">${totB} btl · ${totMg.toFixed(1)}mg · ${Math.round(totD)} doses · $${avgPrice.toFixed(2)}/btl avg</div>
+    </div>
+    ${nextHtml}${runwayHtml}
+    <div style="margin-top:4px;">${typeRows}</div>
+    <button class="btn btn-s" onclick="openAddLot('${name}')" style="margin-top:8px;">+ Add lot</button>
+    ${noteHtml}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PEPTIDE NOTES
+// ═══════════════════════════════════════════════════════════════════════════
+
+function editPepNote(name) {
+  const sn=name.replace(/[^a-zA-Z0-9]/g,'_');
+  document.getElementById('pn-show-'+sn).style.display='none';
+  document.getElementById('pn-ta-'+sn).style.display='block';
+  const b=document.getElementById('pn-btns-'+sn);b.style.display='flex';b.style.gap='8px';
+}
+function cancelPepNote(name) {
+  const sn=name.replace(/[^a-zA-Z0-9]/g,'_');
+  document.getElementById('pn-show-'+sn).style.display='block';
+  document.getElementById('pn-ta-'+sn).style.display='none';
+  document.getElementById('pn-btns-'+sn).style.display='none';
+}
+async function savePepNote(name) {
+  const sn=name.replace(/[^a-zA-Z0-9]/g,'_');
+  const val=document.getElementById('pn-ta-'+sn).value;
+  setStatus('Saving note…','#f57c00');
+  try {
+    const lotIds = INV.filter(l => l.Name === name).map(l => l._id);
+    const existing = NOTES.find(n => (n.Peptide||[]).some(id => lotIds.includes(id)));
+    if (existing) {
+      await updatePage(existing._id, { 'Reconstitution & Dosing Notes': val }, SCHEMA_NOTES);
+      existing['Reconstitution & Dosing Notes'] = val;
+    } else {
+      // Pick the first lot of this peptide as the relation target (relations are list-based)
+      const targetId = lotIds[0];
+      if (!targetId) throw new Error('No inventory lot exists for this peptide yet');
+      await createPage(DB_NOTES, {
+        'Name': name + ' notes',
+        'Peptide': [targetId],
+        'Reconstitution & Dosing Notes': val
+      }, SCHEMA_NOTES);
+    }
+    setStatus('✓ Saved','#2e7d32');
+    cancelPepNote(name);
+    await loadAll();
+    renderInv();
+  } catch(e) {
+    setStatus('⚠ Save failed','#c0392b');
+    alert('Failed to save note: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ADD / EDIT LOT
+// ═══════════════════════════════════════════════════════════════════════════
+
+function lotNameChange() {
+  const name=document.getElementById('lmn').value;
+  document.getElementById('lm-stack-row').style.display=name.includes('/')?'block':'none';
+}
+function mgHint() {
+  const mg=parseFloat(document.getElementById('lmmg').value);
+  const d=parseFloat(document.getElementById('lmdpb').value)||1;
+  const h=document.getElementById('mgpd-hint');
+  if(!isNaN(mg)){h.style.display='block';h.textContent=(mg/d).toFixed(3)+'mg per dose';}
+  else h.style.display='none';
+}
+function modeChange() {
+  const m=document.getElementById('lmmo').value;
+  document.getElementById('lm-cyc').style.display=m==='Cycle'?'block':'none';
+  document.getElementById('lm-act').style.display=m==='Active'?'block':'none';
+}
+
+function openAddLot(name) {
+  editLotId=null;
+  document.getElementById('lm-t').textContent='Add lot';
+  document.getElementById('lmn').value=name||'';
+  ['lmv','lmmg','lmdpb','lmqt','lmpr','lmdt','lmex','lmlocno','lmno','lmmb','lmmd','lmbr','lmiv','lmlr','lmsl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('lmst').value='Freezer';
+  document.getElementById('lmmo').value='Active';
+  document.getElementById('mgpd-hint').style.display='none';
+  document.getElementById('lm-stack-row').style.display=name&&name.includes('/')?'block':'none';
+  document.getElementById('lm-rem-row').style.display='none';
+  document.getElementById('lmqt-lbl').textContent='Qty to add';
+  document.getElementById('lme').textContent='';
+  document.getElementById('lm-saving').style.display='none';
+  document.getElementById('lmnl').innerHTML=pnames().map(n=>`<option value="${n}">`).join('');
+  modeChange();
+  document.getElementById('lm').style.display='flex';
+}
+
+function openEditLot(id) {
+  const l=INV.find(x=>x._id===id);if(!l)return;
+  editLotId=id;
+  document.getElementById('lm-t').textContent='Edit lot';
+  document.getElementById('lmn').value=l.Name||'';
+  document.getElementById('lmv').value=l.Vendor||'';
+  document.getElementById('lmmg').value=l['Bottle Size (mg)']||'';
+  document.getElementById('lmdpb').value=l['Doses Per Bottle']||1;
+  document.getElementById('lmqt').value=l['Qty Total Purchased']||'';
+  document.getElementById('lmpr').value=l['Price Per Bottle']||'';
+  document.getElementById('lmdt').value=l['Purchase Date']||'';
+  document.getElementById('lmex').value=l['Expiration Date']||'';
+  document.getElementById('lmst').value=l.Storage||'Freezer';
+  document.getElementById('lmlocno').value=l['Location Notes']||'';
+  document.getElementById('lmno').value=l['Notes']||'';
+  document.getElementById('lmmo').value=l.Mode||'Active';
+  document.getElementById('lmmb').value=l['Min Bottles Alert']||'';
+  document.getElementById('lmmd').value=l['Min Doses Alert']||'';
+  document.getElementById('lmbr').value=l['Bottles Per Round']||'';
+  document.getElementById('lmiv').value=l['Cycle Interval (months)']||'';
+  document.getElementById('lmlr').value=l['Last Round Date']||'';
+  document.getElementById('lmsl').value=l['Stack Label']||'';
+  document.getElementById('lmqr').value=l['Qty Remaining']||'';
+  document.getElementById('lm-rem-row').style.display='grid';
+  document.getElementById('lmqt-lbl').textContent='Total purchased';
+  document.getElementById('lm-stack-row').style.display=(l.Name||'').includes('/')?'block':'none';
+  document.getElementById('lme').textContent='';
+  document.getElementById('lm-saving').style.display='none';
+  modeChange();
+  document.getElementById('lm').style.display='flex';
+}
+
+function nextBtlForName(name) {
+  let max=0;
+  INV.filter(l=>l.Name===name).forEach(l=>{
+    (l['Bottle Numbers']||'').split(',').map(s=>+s.trim()).filter(n=>!isNaN(n)&&n>0).forEach(n=>{if(n>max)max=n;});
+  });
+  return max+1;
+}
+
+async function saveLot() {
+  const name=document.getElementById('lmn').value.trim();
+  const mg=parseFloat(document.getElementById('lmmg').value);
+  const dpb=parseInt(document.getElementById('lmdpb').value)||1;
+  const qty=parseInt(document.getElementById('lmqt').value)||1;
+  const price=parseFloat(document.getElementById('lmpr').value);
+  if(!name||isNaN(mg)||isNaN(price)){document.getElementById('lme').textContent='Name, mg, and price required.';return;}
+
+  document.getElementById('lm-saving').style.display='block';
+  setStatus('Saving to Notion…','#f57c00');
+
+  const baseProps = {
+    'Vendor': document.getElementById('lmv').value.trim(),
+    'Bottle Size (mg)': mg,
+    'Doses Per Bottle': dpb,
+    'Price Per Bottle': price,
+    'Purchase Date': document.getElementById('lmdt').value || null,
+    'Expiration Date': document.getElementById('lmex').value || null,
+    'Storage': document.getElementById('lmst').value,
+    'Location Notes': document.getElementById('lmlocno').value.trim(),
+    'Notes': document.getElementById('lmno').value.trim(),
+    'Mode': document.getElementById('lmmo').value,
+    'Stack Label': document.getElementById('lmsl').value.trim(),
+    'Min Bottles Alert': parseFloat(document.getElementById('lmmb').value) || 0,
+    'Min Doses Alert': parseFloat(document.getElementById('lmmd').value) || 0,
+    'Bottles Per Round': parseFloat(document.getElementById('lmbr').value) || 1,
+    'Cycle Interval (months)': parseFloat(document.getElementById('lmiv').value) || 6,
+    'Last Round Date': document.getElementById('lmlr').value || null
+  };
+
+  try {
+    if (editLotId) {
+      const qrVal = document.getElementById('lmqr').value;
+      const newRem = qrVal !== '' ? parseFloat(qrVal) : qty;
+      await updatePage(editLotId, {
+        'Name': name,
+        ...baseProps,
+        'Qty Total Purchased': qty,
+        'Qty Remaining': newRem
+      }, SCHEMA_INV);
+    } else {
+      // check if same peptide+mg+dpb exists → merge
+      const existing = INV.find(x => x.Name===name && Math.abs((x['Bottle Size (mg)']||0)-mg)<0.001 && (x['Doses Per Bottle']||1)===dpb);
+      if (existing) {
+        const oldNums = (existing['Bottle Numbers']||'').split(',').map(s=>+s.trim()).filter(n=>!isNaN(n)&&n>0);
+        const startNum = nextBtlForName(name);
+        const newBtls = Array.from({length:qty}, (_,i)=>startNum+i);
+        const allNums = [...oldNums, ...newBtls];
+        await updatePage(existing._id, {
+          'Qty Total Purchased': (existing['Qty Total Purchased']||0) + qty,
+          'Qty Remaining': (existing['Qty Remaining']||0) + qty,
+          'Price Per Bottle': price,
+          'Bottle Numbers': allNums.join(', ')
+        }, SCHEMA_INV);
+      } else {
+        const startNum = nextBtlForName(name);
+        const btlNums = Array.from({length:qty}, (_,i)=>startNum+i).join(', ');
+        await createPage(DB_INV, {
+          'Name': name,
+          ...baseProps,
+          'Qty Total Purchased': qty,
+          'Qty Remaining': qty,
+          'Bottle Numbers': btlNums
+        }, SCHEMA_INV);
+      }
+    }
+    document.getElementById('lm').style.display='none';
+    setStatus('✓ Saved — reloading…','#2e7d32');
+    await loadAll();
+    renderInv();
+  } catch(e) {
+    document.getElementById('lm-saving').style.display='none';
+    document.getElementById('lme').textContent='Save failed: ' + e.message;
+    setStatus('⚠ Save failed','#c0392b');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REMOVE MODAL
+// ═══════════════════════════════════════════════════════════════════════════
+
+function openRemove(lotId) {
+  const l=INV.find(x=>x._id===lotId);if(!l)return;
+  rmLotId=lotId;rmSelected=[];
+  document.getElementById('rm-title').textContent='Remove — '+l.Name;
+  document.getElementById('rm-sub').textContent=l['Bottle Size (mg)']+'mg · '+(l['Doses Per Bottle']||1)+' dose/bottle';
+  document.getElementById('rm-err').textContent='';
+  document.getElementById('rm-person').innerHTML=
+    '<option value="">— stock removal —</option>'+
+    PEOPLE.map(p=>`<option value="${p._id}">${p.Name}</option>`).join('');
+  const nums=(l['Bottle Numbers']||'').split(',').map(s=>s.trim()).filter(s=>s&&!isNaN(+s)).map(Number).sort((a,b)=>a-b);
+  document.getElementById('rm-chips').innerHTML=nums.length?
+    nums.map(n=>`<button data-num="${n}" onclick="toggleChip(${n},this)" style="padding:5px 12px;border-radius:99px;border:1.5px solid #ccc;background:#fff;color:#1a1a18;font-size:13px;font-weight:500;cursor:pointer;">#${n}</button>`).join(''):
+    '<span style="font-size:12px;color:#999;">No bottle numbers — edit this lot to add them.</span>';
+  updateRmCalc(l);
+  document.getElementById('rm').style.display='flex';
+}
+
+function toggleChip(num,btn) {
+  if(rmSelected.includes(num)){rmSelected=rmSelected.filter(x=>x!==num);btn.style.background='#fff';btn.style.color='#1a1a18';btn.style.borderColor='#ccc';}
+  else{rmSelected.push(num);btn.style.background='#1a1a18';btn.style.color='#fff';btn.style.borderColor='#1a1a18';}
+  updateRmCalc(INV.find(x=>x._id===rmLotId));
+}
+
+function updateRmCalc(l) {
+  if(!l)return;
+  const c=rmSelected.length;const doses=c*(l['Doses Per Bottle']||1);
+  document.getElementById('rm-calc').textContent=c>0?
+    `${c} bottle${c>1?'s':''} selected · ${doses} dose${doses>1?'s':''} · #${rmSelected.slice().sort((a,b)=>a-b).join(', #')}`:
+    'Select bottles above';
+}
+
+async function confirmRemove() {
+  if(!rmSelected.length){document.getElementById('rm-err').textContent='Select at least one bottle.';return;}
+  const l=INV.find(x=>x._id===rmLotId);if(!l)return;
+  document.getElementById('rm').style.display='none';
+  setStatus('Saving removal…','#f57c00');
+  try {
+    const personId = document.getElementById('rm-person').value;
+    const personObj = personId ? PEOPLE.find(p => p._id === personId) : null;
+    const oldNums=(l['Bottle Numbers']||'').split(',').map(s=>s.trim()).filter(s=>s&&!isNaN(+s)).map(Number);
+    const newNums=oldNums.filter(n=>!rmSelected.includes(n));
+    await updatePage(rmLotId, {
+      'Bottle Numbers': newNums.join(', '),
+      'Qty Remaining': newNums.length
+    }, SCHEMA_INV);
+    // log entry
+    const today=tod();
+    const logProps = {
+      'Name': `${today} — ${personObj?personObj.Name:'Stock removal'} — ${l.Name}`,
+      'Date': today,
+      'Person Type': personObj ? (personObj.Type || 'Self') : 'Stock removal',
+      'Peptide': [l._id],
+      'Amount (mg)': (l['Bottle Size (mg)']||0) * rmSelected.length,
+      'Doses': rmSelected.length * (l['Doses Per Bottle']||1),
+      'Bottles Given': rmSelected.length,
+      'Bottle Numbers Removed': '#'+rmSelected.slice().sort((a,b)=>a-b).join(', #'),
+      'Notes': personObj ? `For ${personObj.Name}` : ''
+    };
+    if (personObj) logProps['Person'] = [personObj._id];
+    await createPage(DB_LOG, logProps, SCHEMA_LOG);
+    setStatus('✓ Saved — reloading…','#2e7d32');
+    await loadAll();
+    renderInv();
+  } catch(e) {
+    setStatus('⚠ Save failed','#c0392b');
+    alert('Failed to save: ' + e.message);
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// PEOPLE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderPpl() {
+  const el=document.getElementById('ppl-list');
+  if(!PEOPLE.length){el.innerHTML='<div style="text-align:center;padding:2rem;color:#999;">No people yet.</div>';return;}
+  el.innerHTML=PEOPLE.map(p=>{
+    const tb=p.Type==='Customer'?'bx-b':p.Type==='Family'?'bx-g':'bx-x';
+    const pdoses=DOSES.filter(d => (d.Person||[]).includes(p._id));
+    const drows=pdoses.map(d=>{
+      const wkMg=(d['mg Per Dose']||0)*(d['Doses Per Week']||0);
+      const pepName = relName(d.Peptide, INV);
+      return `<div style="display:flex;align-items:center;gap:8px;background:#f5f5f3;border-radius:8px;padding:7px 11px;margin-bottom:5px;font-size:12px;flex-wrap:wrap;">
+        <span style="flex:1;min-width:80px;"><strong>${pepName}</strong></span>
+        <span style="flex:1;color:#888;">${d['mg Per Dose']}mg×${d['Doses Per Week']}/wk</span>
+        <span style="flex:1;color:#888;">${d.Ramping==='Ramping'?`→${d['Target mg']}mg (now ${d['Current mg']}mg)`:''}</span>
+        <span style="flex:1;color:#888;">${wkMg.toFixed(2)}mg/wk · ${d['Doses Per Week']} doses/wk</span>
+        <span class="bx ${d.Active==='Active'?'bx-g':'bx-x'}">${d.Active||'Active'}</span>
+        <button class="btn btn-s" onclick="rampDose('${d._id}',${d['Current mg']||d['mg Per Dose']||0},${d['Target mg']||0})">Ramp↑</button>
+        <button class="btn btn-s" onclick="toggleDose('${d._id}','${d.Active||'Active'}')">${d.Active==='Active'?'Pause':'Resume'}</button>
+      </div>`;
+    }).join('')||'<div style="font-size:12px;color:#999;padding:5px 0;">No doses set.</div>';
+    const tw=pdoses.filter(d=>d.Active==='Active').reduce((a,d)=>a+(d['Doses Per Week']||0),0);
+    const mw=pdoses.filter(d=>d.Active==='Active').reduce((a,d)=>a+(d['mg Per Dose']||0)*(d['Doses Per Week']||0),0);
+    return `<div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:7px;flex-wrap:wrap;gap:7px;">
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span style="font-size:15px;font-weight:500;">${p.Name}</span>
+          <span class="bx ${tb}">${p.Type||'Self'}</span>
+          ${p.Notes?`<span style="font-size:12px;color:#999;">${p.Notes}</span>`:''}
+        </div>
+        <div style="display:flex;align-items:center;gap:7px;">
+          <span style="font-size:12px;color:#888;">${tw} doses/wk · ${mw.toFixed(2)}mg/wk</span>
+          <button class="btn btn-s" onclick="openEditPerson('${p._id}')">Edit</button>
+          <button class="btn btn-s btn-d" onclick="deletePerson('${p._id}','${p.Name}')">×</button>
+        </div>
+      </div>${drows}
+    </div>`;
+  }).join('');
+}
+
+async function toggleDose(id, current) {
+  const nv=current==='Active'?'Paused':'Active';
+  setStatus('Saving…','#f57c00');
+  try {
+    await updatePage(id, { 'Active': nv }, SCHEMA_DOSES);
+    const d=DOSES.find(x=>x._id===id);if(d)d.Active=nv;
+    setStatus('✓ Saved','#2e7d32');
+    renderPpl();renderInv();
+  } catch(e) {
+    setStatus('⚠ Save failed','#c0392b');
+    alert('Failed: ' + e.message);
+  }
+}
+
+async function rampDose(id, current, target) {
+  if(current>=target&&target>0){alert('Already at target dose.');return;}
+  const step=parseFloat(prompt('Increase by how many mg?',0.25));if(isNaN(step))return;
+  const newMg=target>0?Math.min(target,Math.round((current+step)*1000)/1000):Math.round((current+step)*1000)/1000;
+  setStatus('Saving…','#f57c00');
+  try {
+    await updatePage(id, { 'Current mg': newMg }, SCHEMA_DOSES);
+    const d=DOSES.find(x=>x._id===id);if(d)d['Current mg']=newMg;
+    setStatus('✓ Saved','#2e7d32');
+    renderPpl();renderInv();
+  } catch(e) {
+    setStatus('⚠ Save failed','#c0392b');
+    alert('Failed: ' + e.message);
+  }
+}
+
+async function deletePerson(id, name) {
+  if(!confirm(`Remove ${name}?`))return;
+  setStatus('Deleting…','#f57c00');
+  try {
+    await archivePage(id);
+    PEOPLE=PEOPLE.filter(x=>x._id!==id);
+    setStatus('✓ Deleted','#2e7d32');
+    renderPpl();
+  } catch(e) {
+    setStatus('⚠ Delete failed','#c0392b');
+    alert('Failed: ' + e.message);
+  }
+}
+
+function openAddPerson() {
+  editPersonId=null;drc=0;
+  document.getElementById('pm-t').textContent='Add person';
+  ['pmn','pmno'].forEach(i=>document.getElementById(i).value='');
+  document.getElementById('pmt').value='Self';
+  document.getElementById('pm-doses').innerHTML='';
+  document.getElementById('pme').textContent='';
+  document.getElementById('pm-saving').style.display='none';
+  document.getElementById('pm').style.display='flex';
+}
+
+function openEditPerson(id) {
+  const p=PEOPLE.find(x=>x._id===id);if(!p)return;
+  editPersonId=id;drc=0;
+  document.getElementById('pm-t').textContent='Edit person';
+  document.getElementById('pmn').value=p.Name||'';
+  document.getElementById('pmt').value=p.Type||'Self';
+  document.getElementById('pmno').value=p.Notes||'';
+  document.getElementById('pm-doses').innerHTML='';
+  DOSES.filter(d => (d.Person||[]).includes(p._id)).forEach(d=>addDoseRow(d));
+  document.getElementById('pme').textContent='';
+  document.getElementById('pm-saving').style.display='none';
+  document.getElementById('pm').style.display='flex';
+}
+
+function addDoseRow(d) {
+  const i=drc++;
+  const names=pnames();
+  const currentPepName = d ? relName(d.Peptide, INV) : '';
+  const opts=names.map(n=>`<option value="${n}" ${n===currentPepName?'selected':''}>${n}</option>`).join('');
+  const row=document.createElement('div');row.className='dr';row.id='dr'+i;
+  row.innerHTML=`
+    <select id="dp${i}" style="font-size:13px;"><option value="">—</option>${opts}</select>
+    <input type="number" id="dm${i}" placeholder="mg" step="0.01" value="${d?d['mg Per Dose']||'':''}" style="font-size:13px;">
+    <input type="number" id="df${i}" placeholder="×/wk" step="1" value="${d?d['Doses Per Week']||'':''}" style="font-size:13px;">
+    <input type="number" id="dt${i}" placeholder="target" step="0.01" value="${d&&d['Target mg']?d['Target mg']:''}" style="font-size:13px;">
+    <select id="dr${i}" style="font-size:13px;">
+      <option value="No ramp" ${!d||d.Ramping!=='Ramping'?'selected':''}>No ramp</option>
+      <option value="Ramping" ${d&&d.Ramping==='Ramping'?'selected':''}>Ramping</option>
+    </select>
+    <button class="btn btn-s btn-d" onclick="this.closest('.dr').remove()">×</button>`;
+  document.getElementById('pm-doses').appendChild(row);
+}
+
+async function savePerson() {
+  const name=document.getElementById('pmn').value.trim();
+  if(!name){document.getElementById('pme').textContent='Name required.';return;}
+  document.getElementById('pm-saving').style.display='block';
+  setStatus('Saving to Notion…','#f57c00');
+  const type=document.getElementById('pmt').value;
+  const notes=document.getElementById('pmno').value.trim();
+
+  try {
+    let personId;
+    if (editPersonId) {
+      await updatePage(editPersonId, { 'Name':name, 'Type':type, 'Notes':notes }, SCHEMA_PPL);
+      personId = editPersonId;
+      // delete old dose rows for this person
+      const oldDoses = DOSES.filter(d => (d.Person||[]).includes(editPersonId));
+      for (const d of oldDoses) { await archivePage(d._id); }
+    } else {
+      const created = await createPage(DB_PPL, {
+        'Name':name, 'Type':type, 'Notes':notes, 'Active':'Active'
+      }, SCHEMA_PPL);
+      personId = created.id;
+    }
+
+    // save dose rows
+    const rows = document.getElementById('pm-doses').querySelectorAll('.dr');
+    for (const row of rows) {
+      const i = row.id.slice(2);
+      const pepName = document.getElementById('dp'+i).value;
+      const mg = parseFloat(document.getElementById('dm'+i).value);
+      const freq = parseFloat(document.getElementById('df'+i).value)||0;
+      const tgt = parseFloat(document.getElementById('dt'+i).value)||0;
+      const ramp = document.getElementById('dr'+i).value;
+      if (pepName && !isNaN(mg)) {
+        // find a lot of this peptide for relation
+        const pepLot = INV.find(l => l.Name === pepName);
+        if (!pepLot) continue;
+        await createPage(DB_DOSES, {
+          'Name': name + ' — ' + pepName,
+          'Person': [personId],
+          'Peptide': [pepLot._id],
+          'mg Per Dose': mg,
+          'Doses Per Week': freq,
+          'Target mg': tgt || mg,
+          'Current mg': mg,
+          'Ramping': ramp,
+          'Active': 'Active'
+        }, SCHEMA_DOSES);
+      }
+    }
+
+    document.getElementById('pm').style.display='none';
+    setStatus('✓ Saved — reloading…','#2e7d32');
+    await loadAll();
+    renderPpl();renderInv();
+  } catch(e) {
+    document.getElementById('pm-saving').style.display='none';
+    document.getElementById('pme').textContent='Save failed: ' + e.message;
+    setStatus('⚠ Save failed','#c0392b');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// LOG USE
+// ═══════════════════════════════════════════════════════════════════════════
+
+function populateLogSelects() {
+  document.getElementById('lp').innerHTML='<option value="">— choose —</option>'+PEOPLE.map(p=>`<option value="${p._id}">${p.Name}</option>`).join('');
+  document.getElementById('lpep').innerHTML='<option value="">— choose —</option>'+pnames().map(n=>`<option value="${n}">${n}</option>`).join('');
+  if(!document.getElementById('ldate').value)document.getElementById('ldate').value=tod();
+}
+
+function logPersonChange() {
+  const pid=document.getElementById('lp').value;
+  const p=PEOPLE.find(x=>x._id===pid);
+  document.getElementById('cust-f').style.display=(p&&p.Type==='Customer')?'block':'none';
+  logPepChange();
+}
+
+function logPepChange() {
+  const pid=document.getElementById('lp').value;
+  const pepName=document.getElementById('lpep').value;
+  const hint=document.getElementById('lhint');hint.style.display='none';
+  if(pid && pepName){
+    const pepLotIds = INV.filter(l => l.Name === pepName).map(l => l._id);
+    const d = DOSES.find(x =>
+      (x.Person||[]).includes(pid) &&
+      (x.Peptide||[]).some(id => pepLotIds.includes(id)) &&
+      x.Active === 'Active'
+    );
+    if (d) {
+      hint.style.display='block';
+      hint.innerHTML=`Scheduled: <strong>${d['Current mg']||d['mg Per Dose']}mg</strong> × ${d['Doses Per Week']}/wk`;
+      document.getElementById('lmg').value=d['Current mg']||d['mg Per Dose'];
+    }
+  }
+}
+
+async function saveLog() {
+  const personId=document.getElementById('lp').value;
+  const pepName=document.getElementById('lpep').value;
+  const mg=parseFloat(document.getElementById('lmg').value);
+  const date=document.getElementById('ldate').value||tod();
+  if(!personId||!pepName||isNaN(mg)){showMsg('lmsg','Person, peptide, and mg required.','#c0392b');return;}
+  setStatus('Saving log…','#f57c00');
+  try {
+    const p=PEOPLE.find(x=>x._id===personId);
+    const pepLot = INV.find(l => l.Name === pepName);
+    if (!pepLot) throw new Error('Peptide not found in inventory');
+    const paid=parseFloat(document.getElementById('lpaid').value)||0;
+    const btl=parseFloat(document.getElementById('lbtl').value)||0;
+    const notes=document.getElementById('lnotes').value.trim();
+    const btlnums=document.getElementById('lbtlnums').value.trim();
+    const logProps = {
+      'Name': `${date} — ${p?p.Name:''} — ${pepName}`,
+      'Date': date,
+      'Person': [personId],
+      'Person Type': p ? (p.Type || 'Self') : 'Self',
+      'Peptide': [pepLot._id],
+      'Amount (mg)': mg,
+      'Bottle Numbers Removed': btlnums || ''
+    };
+    if (paid > 0) logProps['Paid ($)'] = paid;
+    if (btl > 0) logProps['Bottles Given'] = btl;
+    if (notes) logProps['Notes'] = notes;
+    await createPage(DB_LOG, logProps, SCHEMA_LOG);
+
+    // deduct from inventory if bottle numbers provided
+    if (btlnums) {
+      const removed = btlnums.split(',').map(s=>+s.trim()).filter(n=>!isNaN(n)&&n>0);
+      for (const l of INV.filter(x => x.Name === pepName)) {
+        const old = (l['Bottle Numbers']||'').split(',').map(s=>+s.trim()).filter(n=>!isNaN(n)&&n>0);
+        const updated = old.filter(n=>!removed.includes(n));
+        if (updated.length !== old.length) {
+          await updatePage(l._id, {
+            'Bottle Numbers': updated.join(', '),
+            'Qty Remaining': updated.length
+          }, SCHEMA_INV);
+        }
+      }
+    }
+    ['lmg','lpaid','lbtl','lnotes','lbtlnums'].forEach(id=>document.getElementById(id).value='');
+    showMsg('lmsg','✓ Logged!','#2e7d32');
+    setStatus('✓ Saved','#2e7d32');
+    await loadAll();renderLog();renderInv();
+  } catch(e) {
+    showMsg('lmsg','Save failed: '+e.message,'#c0392b');
+    setStatus('⚠ Save failed','#c0392b');
+  }
+}
+
+function renderLog() {
+  if(!LOG.length){document.getElementById('log-hist').innerHTML='';return;}
+  const rows=LOG.slice(0,50).map(e=>{
+    const personName = relName(e.Person, PEOPLE);
+    const pepName = relName(e.Peptide, INV);
+    return `<div style="display:grid;grid-template-columns:90px 1fr 90px 55px 65px 1fr;gap:7px;align-items:center;background:#f5f5f3;border-radius:8px;padding:6px 9px;margin-bottom:4px;font-size:12px;color:#555;">
+      <span>${e.Date||''}</span>
+      <span><strong>${personName||e['Person Type']||''}</strong></span>
+      <span>${pepName}</span>
+      <span>${e['Amount (mg)']||''}mg</span>
+      <span>${e['Paid ($)']?'$'+Number(e['Paid ($)']).toFixed(2):''}</span>
+      <span style="color:#888;">${e.Notes||e['Bottle Numbers Removed']||''}</span>
+    </div>`;
+  }).join('');
+  document.getElementById('log-hist').innerHTML=`<div class="card"><p style="font-size:13px;font-weight:500;margin-bottom:.7rem;">Recent (last 50)</p>${rows}</div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REORDER
+// ═══════════════════════════════════════════════════════════════════════════
+
+function renderReorder() {
+  const names=pnames();
+  const urg=names.filter(n=>needsReorder(n));
+  const warn=names.filter(n=>{
+    if(needsReorder(n)||pmode(n)==='Inactive')return false;
+    const b=wDemandDoses(n);
+    const lots=INV.filter(l=>l.Name===n);
+    const totD=lots.reduce((a,l)=>a+(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1),0);
+    const w=b>0?totD/b:null;
+    return w!==null&&w<=3;
+  });
+  const el=document.getElementById('ord-list');
+  if(!urg.length&&!warn.length){el.innerHTML='<div style="text-align:center;padding:3rem;color:#999;">All peptides well stocked.</div>';return;}
+  function mk(name,isU){
+    const lots=INV.filter(l=>l.Name===name);
+    const totB=lots.reduce((a,l)=>a+(l['Qty Remaining']||0),0);
+    const totD=lots.reduce((a,l)=>a+(l['Qty Remaining']||0)*(l['Doses Per Bottle']||1),0);
+    const burn=wDemandDoses(name);const w=burn>0?totD/burn:null;
+    const totalP=lots.reduce((a,l)=>a+(l['Qty Total Purchased']||0),0);
+    const avg=lots.reduce((a,l)=>a+(l['Price Per Bottle']||0)*(l['Qty Total Purchased']||0),0)/Math.max(1,totalP);
+    return `<div class="card" style="border-left:3px solid ${isU?'#e5b4b4':'#ffe0b2'};">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:5px;">
+        <span style="font-size:15px;font-weight:500;">${name}</span>
+        <span class="bx ${isU?'bx-r':'bx-a'}">${isU?'Reorder now':'Running low'}</span>
+      </div>
+      <div style="font-size:13px;color:#888;">${totB} btl · ${Math.round(totD)} doses · ${burn?burn+' doses/wk':'no burn rate'} · ${w!==null?w.toFixed(1)+' wks':'—'}</div>
+      <div style="font-size:12px;color:#999;margin-top:4px;">Last avg: $${avg.toFixed(2)}/btl</div>
+    </div>`;
+  }
+  el.innerHTML=
+    (urg.length?`<p style="font-size:13px;font-weight:500;color:#c0392b;margin-bottom:.7rem;">Needs reorder</p>`+urg.map(n=>mk(n,true)).join(''):'')+
+    (warn.length?`<p style="font-size:13px;font-weight:500;color:#f57c00;margin:1rem 0 .7rem;">Running low</p>`+warn.map(n=>mk(n,false)).join(''):'');
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CALCULATOR
+// ═══════════════════════════════════════════════════════════════════════════
+
+function populateCalc() {
+  const names=pnames();
+  ['cp','bp'].forEach(id=>{
+    document.getElementById(id).innerHTML='<option value="">— choose —</option>'+names.map(n=>`<option value="${n}">${n}</option>`).join('');
+  });
+}
+function calcUpdateLots() {
+  const name=document.getElementById('cp').value;
+  const lots=INV.filter(l=>l.Name===name&&(l['Qty Remaining']||0)>0);
+  document.getElementById('cl').innerHTML='<option value="">— choose lot —</option>'+lots.map(l=>`<option value="${l._id}">${l['Bottle Size (mg)']}mg — ${l['Qty Remaining']} btl · $${l['Price Per Bottle']}/btl</option>`).join('');
+  document.getElementById('cli').style.display='none';document.getElementById('cr').innerHTML='';
+}
+function calcUpdate() {
+  const lid=document.getElementById('cl').value;const lot=INV.find(l=>l._id===lid);
+  if(!lot){document.getElementById('cr').innerHTML='';return;}
+  const ci=document.getElementById('cli');ci.style.display='block';
+  const d=lot['Doses Per Bottle']||1;const mg=lot['Bottle Size (mg)']||0;const price=lot['Price Per Bottle']||0;
+  ci.innerHTML=`<strong>${mg}mg</strong> · ${d} doses/btl · <strong>${(mg/d).toFixed(3)}mg/dose</strong> · $${price.toFixed(2)}/btl · <strong>$${(price/d).toFixed(2)}/dose</strong>`;
+  const gD=parseFloat(document.getElementById('cgd').value);const gM=parseFloat(document.getElementById('cgm').value);
+  let mgG=0,dG=0;
+  if(!isNaN(gD)&&gD>0){dG=gD;mgG=gD*(mg/d);}
+  else if(!isNaN(gM)&&gM>0){mgG=gM;dG=mgG/(mg/d);}
+  else{document.getElementById('cr').innerHTML='';return;}
+  const cpm=price/mg;const cpd=price/d;
+  document.getElementById('cr').innerHTML=`<div style="background:#f5f5f3;border-radius:8px;padding:1rem;margin-top:.75rem;">
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid #eee;color:#666;"><span>Amount</span><span>${mgG.toFixed(2)}mg · ${dG.toFixed(1)} doses</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid #eee;color:#666;"><span>$/mg · $/dose</span><span>$${cpm.toFixed(3)} · $${cpd.toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:500;padding:4px 0;"><span>Charge at cost</span><span>$${(cpd*dG).toFixed(2)}</span></div>
+  </div>`;
+}
+function calcBlend() {
+  const name=document.getElementById('bp').value;if(!name)return;
+  const lots=INV.filter(l=>l.Name===name);if(!lots.length)return;
+  const tm=lots.reduce((a,l)=>a+(l['Bottle Size (mg)']||0)*(l['Qty Total Purchased']||0),0);
+  const ts=lots.reduce((a,l)=>a+(l['Price Per Bottle']||0)*(l['Qty Total Purchased']||0),0);
+  if (tm === 0) { document.getElementById('br').innerHTML='<div style="font-size:13px;color:#999;">No purchase data yet.</div>'; return; }
+  const bl=ts/tm;
+  const tdoses=lots.reduce((a,l)=>a+(l['Doses Per Bottle']||1)*(l['Qty Total Purchased']||0),0);
+  const cpd=tdoses>0?ts/tdoses:0;
+  const sz=[...new Set(lots.map(l=>l['Bottle Size (mg)']))].sort((a,b)=>a-b);
+  document.getElementById('br').innerHTML=`<div style="background:#f5f5f3;border-radius:8px;padding:1rem;">
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid #eee;color:#666;"><span>Total mg purchased</span><span>${tm.toFixed(1)}mg</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;padding:4px 0;border-bottom:1px solid #eee;color:#666;"><span>Total spent</span><span>$${ts.toFixed(2)}</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;padding:4px 0;border-bottom:1px solid #eee;"><span>Blended $/mg</span><span>$${bl.toFixed(3)}/mg</span></div>
+    <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:500;padding:4px 0;border-bottom:1px solid #eee;"><span>Blended $/dose</span><span>$${cpd.toFixed(2)}/dose</span></div>
+    ${sz.map(s=>`<div style="display:flex;justify-content:space-between;font-size:13px;padding:4px 0;color:#888;"><span>${s}mg bottle</span><span>$${(bl*s).toFixed(2)}/btl</span></div>`).join('')}
+  </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════════════════
+
+loadAll().then(() => { renderInv(); });
+</script>
+</body>
+</html>
