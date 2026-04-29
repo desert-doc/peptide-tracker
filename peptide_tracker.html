@@ -196,6 +196,15 @@ textarea{resize:vertical;}
     <div><label>$/bottle</label><input type="number" id="lmpr" placeholder="28.50" step="0.01"></div>
   </div>
   <div id="mgpd-hint" style="font-size:12px;color:#1565c0;margin-bottom:6px;display:none;"></div>
+  <div class="g2" id="lm-start-row" style="display:none;">
+    <div>
+      <label>Start bottle # at <span style="color:#999;font-weight:400;">(optional)</span></label>
+      <input type="number" id="lmstart" min="1" placeholder="auto" oninput="updateBottleHint()">
+    </div>
+    <div style="display:flex;flex-direction:column;justify-content:flex-end;">
+      <p style="font-size:12px;color:#888;padding-bottom:6px;">Leave blank for next available</p>
+    </div>
+  </div>
   <div id="btl-hint" style="background:#e3f2fd;border:1px solid #bbdefb;border-radius:8px;padding:10px 13px;margin-bottom:11px;font-size:13px;color:#0d47a1;display:none;"></div>
   <div id="dup-warn" style="background:#fff8e1;border:1px solid #ffd54f;border-radius:8px;padding:10px 13px;margin-bottom:11px;font-size:13px;color:#7a4a00;display:none;"></div>
   <div class="gf" id="lm-stack-row" style="display:none;">
@@ -832,6 +841,25 @@ function useExistingName(name) {
   document.getElementById('dup-warn').style.display='none';
 }
 
+// Returns all bottle numbers currently used by a peptide name, as a Set.
+function existingBtlNums(name) {
+  const used = new Set();
+  INV.filter(l => l.Name === name).forEach(l => {
+    (l['Bottle Numbers']||'').split(',').map(s=>+s.trim())
+      .filter(n => !isNaN(n) && n > 0).forEach(n => used.add(n));
+  });
+  return used;
+}
+
+// Returns the start bottle # to use: the override from the input if valid,
+// otherwise the auto next-available value.
+function effectiveStartNum(name) {
+  const overrideRaw = document.getElementById('lmstart').value;
+  const override = parseInt(overrideRaw, 10);
+  if (overrideRaw !== '' && !isNaN(override) && override > 0) return override;
+  return nextBtlForName(name);
+}
+
 // Tells the user which bottle numbers to sharpie BEFORE they save.
 // Numbering is sequential per peptide name (across all mg sizes / dpb).
 function updateBottleHint() {
@@ -842,17 +870,46 @@ function updateBottleHint() {
   const name = (document.getElementById('lmn').value || '').trim();
   const qty  = parseInt(document.getElementById('lmqt').value, 10) || 0;
   if (!name || qty <= 0) { hint.style.display='none'; return; }
-  const startNum = nextBtlForName(name);
-  const endNum   = startNum + qty - 1;
+
+  // Compute range (using override if user set one)
+  const autoStart = nextBtlForName(name);
+  const startNum  = effectiveStartNum(name);
+  const endNum    = startNum + qty - 1;
+  const isOverride = startNum !== autoStart;
   const isNewPep = !INV.some(l => l.Name === name);
   const range = qty === 1 ? `#${startNum}` : `#${startNum}–#${endNum}`;
-  const sub = isNewPep
-    ? `New peptide — bottle numbering starts at #1.`
-    : `Continues numbering for <strong>${name}</strong> (last labeled was #${startNum-1}).`;
+
+  // Update placeholder so users see what auto would pick
+  document.getElementById('lmstart').placeholder = String(autoStart);
+
+  // Detect overlap with existing bottles for this peptide name
+  const used = existingBtlNums(name);
+  const overlap = [];
+  for (let n = startNum; n <= endNum; n++) if (used.has(n)) overlap.push(n);
+
+  let sub;
+  if (overlap.length) {
+    // Collision — show in red
+    hint.style.background = '#fde8e8';
+    hint.style.borderColor = '#e5b4b4';
+    hint.style.color = '#c0392b';
+    sub = `⚠️ Bottles ${overlap.map(n=>'#'+n).join(', ')} already exist for ${name}. Pick a different starting number.`;
+  } else {
+    hint.style.background = '#e3f2fd';
+    hint.style.borderColor = '#bbdefb';
+    hint.style.color = '#0d47a1';
+    if (isOverride) {
+      sub = `Custom starting number (auto would have suggested #${autoStart}).`;
+    } else if (isNewPep) {
+      sub = `New peptide — bottle numbering starts at #1.`;
+    } else {
+      sub = `Continues numbering for <strong>${name}</strong> (last labeled was #${startNum-1}).`;
+    }
+  }
   hint.style.display='block';
   hint.innerHTML =
     `🏷️ <strong>Label these bottles ${range}</strong> before placing them in stock.` +
-    `<div style="font-size:12px;color:#1565c0;margin-top:3px;font-weight:400;">${sub}</div>`;
+    `<div style="font-size:12px;margin-top:3px;font-weight:400;">${sub}</div>`;
 }
 function mgHint() {
   const mg=parseFloat(document.getElementById('lmmg').value);
@@ -871,7 +928,8 @@ function openAddLot(name) {
   editLotId=null;
   document.getElementById('lm-t').textContent='Add lot';
   document.getElementById('lmn').value=name||'';
-  ['lmv','lmmg','lmdpb','lmqt','lmpr','lmdt','lmex','lmlocno','lmno','lmmb','lmmd','lmbr','lmiv','lmlr','lmsl'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  ['lmv','lmmg','lmdpb','lmqt','lmpr','lmdt','lmex','lmlocno','lmno','lmmb','lmmd','lmbr','lmiv','lmlr','lmsl','lmstart'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
+  document.getElementById('lm-start-row').style.display='grid';
   document.getElementById('lmst').value='Freezer';
   document.getElementById('lmmo').value='Active';
   document.getElementById('mgpd-hint').style.display='none';
@@ -918,6 +976,7 @@ function openEditLot(id) {
   document.getElementById('lm-saving').style.display='none';
   document.getElementById('btl-hint').style.display='none';
   document.getElementById('dup-warn').style.display='none';
+  document.getElementById('lm-start-row').style.display='none';
   document.getElementById('lmnl').innerHTML=pnames().map(n=>`<option value="${n}">`).join('');
   modeChange();
   checkSimilarName();
@@ -1021,14 +1080,28 @@ async function saveLot() {
 
       await updatePage(editLotId, updates, SCHEMA_INV);
     } else {
+      // Determine start # — use override if user provided one, else auto next
+      const startNum = effectiveStartNum(name);
+
+      // Block save if the chosen range collides with existing bottles
+      const used = existingBtlNums(name);
+      const collisions = [];
+      for (let n = startNum; n < startNum + qty; n++) if (used.has(n)) collisions.push(n);
+      if (collisions.length) {
+        document.getElementById('lm-saving').style.display='none';
+        document.getElementById('lme').textContent =
+          `Bottles ${collisions.map(n=>'#'+n).join(', ')} already exist for ${name}. Change "Start bottle # at" to a non-overlapping number.`;
+        setStatus('⚠ Save blocked','#c0392b');
+        return;
+      }
+
       // check if same peptide+mg+dpb exists → merge
       const existing = INV.find(x => x.Name===name && Math.abs((x['Bottle Size (mg)']||0)-mg)<0.001 && (x['Doses Per Bottle']||1)===dpb);
       if (existing) {
         const oldNums = (existing['Bottle Numbers']||'').split(',').map(s=>+s.trim()).filter(n=>!isNaN(n)&&n>0);
-        const startNum = nextBtlForName(name);
         const newBtls = Array.from({length:qty}, (_,i)=>startNum+i);
         assignedStart = startNum; assignedEnd = startNum + qty - 1;
-        const allNums = [...oldNums, ...newBtls];
+        const allNums = [...oldNums, ...newBtls].sort((a,b)=>a-b);
         await updatePage(existing._id, {
           'Qty Total Purchased': (existing['Qty Total Purchased']||0) + qty,
           'Qty Remaining': (existing['Qty Remaining']||0) + qty,
@@ -1036,7 +1109,6 @@ async function saveLot() {
           'Bottle Numbers': allNums.join(', ')
         }, SCHEMA_INV);
       } else {
-        const startNum = nextBtlForName(name);
         assignedStart = startNum; assignedEnd = startNum + qty - 1;
         const btlNums = Array.from({length:qty}, (_,i)=>startNum+i).join(', ');
         await createPage(DB_INV, {
